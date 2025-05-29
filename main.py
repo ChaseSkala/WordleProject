@@ -36,6 +36,12 @@ def no_incorrect_letters(word: str, guess_info: GuessData) -> bool:
   return True
 
 
+def is_wordle_found(word, guess_info):
+  for i, letter in enumerate(guess_info.in_correct_spot):
+    if letter is None or word[i] != letter:
+      return False
+  return True
+
 def make_guess(session_id: str, guess_info: GuessData) -> list[LetterInfo]:
   url = f"http://127.0.0.1:8000/session/{session_id}/guess"
 
@@ -68,7 +74,7 @@ def make_guess(session_id: str, guess_info: GuessData) -> list[LetterInfo]:
   letter_infos = []
   for letter_info in response['letters']:
     letter_infos.append(LetterInfo(**letter_info))
-  return letter_infos
+  return letter_infos, word
 
 def gather_information(guess: list[LetterInfo], guess_info: GuessData):
 
@@ -85,7 +91,8 @@ def gather_information(guess: list[LetterInfo], guess_info: GuessData):
     if letter_info.letter in guess_info.in_word_not_spot and letter_info.in_correct_spot:
       guess_info.in_word_not_spot.remove(letter_info.letter)
     if not letter_info.in_word and not letter_info.in_correct_spot:
-      guess_info.not_in_word.append(letter_info.letter)
+      if letter_info.letter not in guess_info.not_in_word:
+        guess_info.not_in_word.append(letter_info.letter)
 
   print(guess_info.in_correct_spot)
   print(guess_info.in_word_not_spot)
@@ -93,13 +100,27 @@ def gather_information(guess: list[LetterInfo], guess_info: GuessData):
   print(guess_info.not_in_word)
 
 def main():
-  x = 0
+  attempts = 1
+  found_wordle = False
+  ready_to_exit = False
   guess_data = GuessData()
   session_id = create_session()
-  guess = make_guess(session_id, guess_data)
+  print(f"Attempt {attempts}")
+  guess, word = make_guess(session_id, guess_data)
   gather_information(guess, guess_data)
-  while x <= 4:
-    guess = make_guess(session_id, guess_data)
-    gather_information(guess, guess_data)
-    x = x + 1
+  while not ready_to_exit:
+    attempts += 1
+    if attempts > 5:
+      ready_to_exit = True
+    if is_wordle_found(word, guess_data):
+      ready_to_exit = True
+      found_wordle = True
+    else:
+      print(f"Attempt {attempts}")
+      guess, word = make_guess(session_id, guess_data)
+      gather_information(guess, guess_data)
+  if found_wordle:
+    print(f"Today's wordle is {word}")
+  else:
+    print("I was unable to find the wordle.")
 main()
