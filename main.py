@@ -27,7 +27,9 @@ def make_guess(session_id: str, guess_info: GuessData) -> tuple[list[LetterInfo]
     words: list[str] = [line.strip() for line in file]
     while not found_new_word:
       if guess_info.in_correct_spot == [None, None, None, None, None] and guess_info.in_word_not_spot == [] and guess_info.not_in_word == []:
-        word: str = random.choice(words)
+        with open('startingwords.txt', 'r') as file:
+          words: list[str] = [line.strip() for line in file]
+          word: str = random.choice(words)
         found_new_word = True
       else:
         words = list(filter(lambda w: GuessData.filter_words(w), words))
