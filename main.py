@@ -5,6 +5,8 @@ import random
 from modules import LetterInfo
 from modules import GuessData
 
+max_attempts = 6
+
 def create_session() -> str:
   url = "http://127.0.0.1:8000/session"
 
@@ -42,7 +44,10 @@ def is_wordle_found(word, guess_info):
       return False
   return True
 
-def make_guess(session_id: str, guess_info: GuessData) -> list[LetterInfo]:
+def filter_words(word: str, guess_info: GuessData) -> bool:
+  return matches_correct_spots(word, guess_info) and respects_forbidden_spots(word, guess_info) and no_incorrect_letters(word, guess_info)
+
+def make_guess(session_id: str, guess_info: GuessData) -> tuple[list[LetterInfo], str]:
   url = f"http://127.0.0.1:8000/session/{session_id}/guess"
 
   found_new_word = False
@@ -54,9 +59,7 @@ def make_guess(session_id: str, guess_info: GuessData) -> list[LetterInfo]:
         word: str = random.choice(words)
         found_new_word = True
       else:
-        words = list(filter(lambda w: matches_correct_spots(w, guess_info), words))
-        words = list(filter(lambda w: respects_forbidden_spots(w, guess_info), words))
-        words = list(filter(lambda w: no_incorrect_letters(w, guess_info), words))
+        words = list(filter(lambda w: filter_words(w, guess_info), words))
         word: str = random.choice(words)
         found_new_word = True
 
@@ -77,17 +80,14 @@ def make_guess(session_id: str, guess_info: GuessData) -> list[LetterInfo]:
   return letter_infos, word
 
 def gather_information(guess: list[LetterInfo], guess_info: GuessData):
-
-  data = guess
-
-  for idx, letter_info in enumerate(data):
+  for idx, letter_info in enumerate(guess):
     if letter_info.in_correct_spot:
       guess_info.in_correct_spot[idx] = letter_info.letter
     if letter_info.in_word and not letter_info.in_correct_spot:
       if letter_info.letter in guess_info.forbidden_spots:
-        guess_info.forbidden_spots[letter_info.letter].append(idx + 1)
+        guess_info.forbidden_spots[letter_info.letter].append(idx)
       else:
-        guess_info.forbidden_spots[letter_info.letter] = [idx + 1]
+        guess_info.forbidden_spots[letter_info.letter] = [idx]
     if letter_info.letter in guess_info.in_word_not_spot and letter_info.in_correct_spot:
       guess_info.in_word_not_spot.remove(letter_info.letter)
     if not letter_info.in_word and not letter_info.in_correct_spot:
@@ -100,27 +100,31 @@ def gather_information(guess: list[LetterInfo], guess_info: GuessData):
   print(guess_info.not_in_word)
 
 def main():
-  attempts = 1
-  found_wordle = False
-  ready_to_exit = False
-  guess_data = GuessData()
-  session_id = create_session()
-  print(f"Attempt {attempts}")
-  guess, word = make_guess(session_id, guess_data)
-  gather_information(guess, guess_data)
-  while not ready_to_exit:
-    attempts += 1
-    if attempts > 5:
-      ready_to_exit = True
-    if is_wordle_found(word, guess_data):
-      ready_to_exit = True
-      found_wordle = True
+  finding_wordle = True
+  while finding_wordle:
+    attempts = 1
+    found_wordle = False
+    ready_to_exit = False
+    guess_data = GuessData()
+    session_id = create_session()
+    print(f"Attempt {attempts}")
+    guess, word = make_guess(session_id, guess_data)
+    gather_information(guess, guess_data)
+    while not ready_to_exit:
+      attempts += 1
+      if attempts == max_attempts:
+        ready_to_exit = True
+      if is_wordle_found(word, guess_data):
+        ready_to_exit = True
+        found_wordle = True
+      else:
+        print(f"Attempt {attempts}")
+        guess, word = make_guess(session_id, guess_data)
+        gather_information(guess, guess_data)
+    if found_wordle:
+      print(f"Today's wordle is {word}")
+      finding_wordle = False
     else:
-      print(f"Attempt {attempts}")
-      guess, word = make_guess(session_id, guess_data)
-      gather_information(guess, guess_data)
-  if found_wordle:
-    print(f"Today's wordle is {word}")
-  else:
-    print("I was unable to find the wordle.")
+      print("I was unable to find the wordle.")
+      print("Re-trying...")
 main()
