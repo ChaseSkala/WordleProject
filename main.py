@@ -32,7 +32,7 @@ def make_guess(session_id: str, guess_info: GuessData) -> tuple[list[LetterInfo]
           word: str = random.choice(words)
         found_new_word = True
       else:
-        words = list(filter(lambda w: GuessData.filter_words(w), words))
+        words = list(filter(lambda w: guess_info.filter_words(w), words))
         word: str = random.choice(words)
         found_new_word = True
 
@@ -62,18 +62,18 @@ def main():
     session_id = create_session()
     print(f"Attempt {attempts}")
     guess, word = make_guess(session_id, guess_data)
-    GuessData.gather_information(guess)
+    guess_data.gather_information(guess)
     while not ready_to_exit:
       attempts += 1
       if attempts == max_attempts:
         ready_to_exit = True
-      if GuessData.is_wordle_found(word):
+      if guess_data.is_wordle_found(word):
         ready_to_exit = True
         found_wordle = True
       else:
         print(f"Attempt {attempts}")
         guess, word = make_guess(session_id, guess_data)
-        GuessData.gather_information(guess)
+        guess_data.gather_information(guess)
     if found_wordle:
       print(f"Today's wordle is {word}")
       finding_wordle = False
