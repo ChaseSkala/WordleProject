@@ -2,8 +2,9 @@ import requests
 import json
 import random
 
-from modules import LetterInfo
-from modules import GuessData
+from .modules import LetterInfo
+from .modules import GuessData
+import importlib.resources
 
 max_attempts = 6
 
@@ -20,11 +21,11 @@ def create_session() -> str:
 
 def find_new_word(guess_info: GuessData):
   found_new_word = False
-  with open('words.txt', 'r') as file:
+  with importlib.resources.open_text("wordle_solver", "words.txt") as file:
     words: list[str] = [line.strip() for line in file]
     while not found_new_word:
       if guess_info.in_correct_spot == [None, None, None, None, None] and guess_info.in_word_not_spot == [] and guess_info.not_in_word == []:
-        with open('startingwords.txt', 'r') as file:
+        with importlib.resources.open_text("wordle_solver", "startingwords.txt") as file:
           words: list[str] = [line.strip() for line in file]
           word: str = random.choice(words)
         found_new_word = True
@@ -92,4 +93,3 @@ def solve_wordle():
 def main():
   wordle_answer = solve_wordle()
   print(wordle_answer)
-main()
