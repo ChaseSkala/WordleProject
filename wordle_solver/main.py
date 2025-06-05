@@ -9,6 +9,14 @@ import importlib.resources
 max_attempts = 6
 
 def create_session() -> str:
+  """Generates a session id for the user.
+
+  This function contacts the wordle server made by Jordan Mesches at https://github.com/Jordan-Mesches/wordle-server
+  and creates a session id for the user that is used to solve the wordle.
+
+  Returns:
+    str: The session id for the user.
+  """
   url = "http://127.0.0.1:8000/session"
 
   payload = ""
@@ -19,7 +27,20 @@ def create_session() -> str:
 
   return response.json()['session_id']
 
-def find_new_word(guess_info: GuessData):
+def find_new_word(guess_info: GuessData) -> str:
+  """A function that finds a new word to be guessed for the wordle.
+
+  The function takes data from previous guesses and uses that data
+  to filter out words and find the next best guess.
+
+  Args:
+    guess_info (GuessData): An object containing the current known state
+            of the word being guessed, including correct letters, forbidden
+            spots, and incorrect letters.
+
+  Returns:
+    str: The word that was found to be the next best guess.
+  """
   found_new_word = False
   with importlib.resources.open_text("wordle_solver", "words.txt") as file:
     words: list[str] = [line.strip() for line in file]
@@ -35,7 +56,18 @@ def find_new_word(guess_info: GuessData):
         found_new_word = True
     return word
 
-def data(word: str, session_id: str):
+def data(word: str, session_id: str) -> dict:
+  """A function that holds the web data for the program.
+
+  This function contacts the web url and returns the payload and headers.
+
+  Args:
+    word (str): The word to be guessed.
+    session_id (str): The session id for the user.
+
+  Returns:
+    dict: The payload and headers.
+  """
   url = f"http://127.0.0.1:8000/session/{session_id}/guess"
   payload = json.dumps({
     "guess": f"{word}"
@@ -47,6 +79,21 @@ def data(word: str, session_id: str):
   return response.json()
 
 def make_guess(session_id: str, guess_info: GuessData) -> tuple[list[LetterInfo], str]:
+  """A function that makes the guesses to the wordle server.
+
+  The function takes the next best word and makes a guess
+  with the wordle server.
+
+  Args:
+    session_id (str): The session id for the user.
+    guess_info (GuessData): An object containing the current known state
+            of the word being guessed, including correct letters, forbidden
+            spots, and incorrect letters.
+
+  Returns:
+    A list of the data gained from making the guess and
+    the word that was used for making the guess.
+  """
   word = find_new_word(guess_info)
   response = data(word, session_id)
   print(f"Guessed word: {word}")
@@ -56,13 +103,38 @@ def make_guess(session_id: str, guess_info: GuessData) -> tuple[list[LetterInfo]
     letter_infos.append(LetterInfo(**letter_info))
   return letter_infos, word
 
-def make_attempt(attempts: int, session_id: str, guess_data: GuessData):
+def make_attempt(attempts: int, session_id: str, guess_data: GuessData) -> tuple[list, str]:
+  """A function that makes an attempt at solving the wordle.
+
+  This function makes a guess at solving the wordle and then
+  returns the data that was gained from making the guess.
+
+  Args:
+    attempts (int): The number of attempts made.
+    session_id (str): The session id for the user.
+    guess_data (GuessData): An object containing the current known state
+            of the word being guessed, including correct letters, forbidden
+            spots, and incorrect letters.
+
+  Returns:
+    A list of the data used in the guess and the word that was used
+    for the guess.
+  """
   print(f"Attempt {attempts}")
   guess, word = make_guess(session_id, guess_data)
   guess_data.gather_information(guess)
   return guess, word
 
-def solve_wordle():
+def solve_wordle() -> str:
+  """A function that solves the wordle.
+
+  This function keeps track if the wordle has been found or not
+  and makes attempts using previous guesses and finds the daily
+  wordle.
+
+  Returns:
+    The answer of what the daily wordle's word is.
+  """
   answer = None
   finding_wordle = True
   attempts = 1
@@ -89,7 +161,3 @@ def solve_wordle():
       print("I was unable to find the wordle.")
       print("Re-trying...")
   return answer
-
-def main():
-  wordle_answer = solve_wordle()
-  print(wordle_answer)

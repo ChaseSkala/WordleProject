@@ -16,12 +16,35 @@ class GuessData:
         self.forbidden_spots = {}
 
     def matches_correct_spots(self, word: str) -> bool:
+        """Makes sure that the letters are in the correct spots.
+
+        It makes sure if the value of the list in_correct_spot is
+        not None, and checks to see if the correct value is inside of
+        that spot. If it is not, then it returns false; otherwise True.
+
+        Args:
+          word (str): The word to be checked.
+
+        Returns:
+            A value that decides if the correct letters are in the correct spots.
+        """
         for i, letter in enumerate(self.in_correct_spot):
             if letter is not None and word[i] != letter:
                 return False
         return True
 
     def respects_forbidden_spots(self, word: str) -> bool:
+        """Makes sure that a letter cannot be in the same spot twice
+
+        Checks to make sure that a letter that is in the word
+        but not in a certain spot isn't in that spot.
+
+        Args:
+          word (str): The word to be checked.
+
+        Returns:
+            A value that decides if the letter is in the same spot twice.
+        """
         for letter, forbidden_indices in self.forbidden_spots.items():
             for idx in forbidden_indices:
                 if idx < len(word) and word[idx] == letter:
@@ -29,18 +52,53 @@ class GuessData:
         return True
 
     def no_incorrect_letters(self, word: str) -> bool:
+        """Makes sure that no incorrect letters are used again
+
+        Checks to see if an incorrect letter is in the next guessed
+        word. If it is then it returns False; otherwise True.
+
+        Args:
+          word (str): The word to be checked.
+
+        Returns:
+          A value that decides if the incorrect letter is in the next guessed
+        """
         for letter in self.not_in_word:
             if letter in word:
                 return False
         return True
 
-    def is_wordle_found(self, word: str):
+    def is_wordle_found(self, word: str) -> bool:
+        """Checks to see if the wordle was found or not.
+
+        Checks each letter in the list in_correct_spot is
+        correct. If each individual letter is not in the
+        correct spot, it returns False; otherwise True.
+
+        Args:
+          word (str): The word to be checked.
+
+        Returns:
+          A value that decides if the wordle is found or not.
+        """
         for i, letter in enumerate(self.in_correct_spot):
             if letter is None or word[i] != letter:
                 return False
         return True
 
     def use_forbidden_word_in_different_spot(self, word: str) -> bool:
+        """Makes sure that a letter is used in a different spot in the next word guessed.
+
+        Checks to see if a letter that is in the word but the
+        incorrect spot is used in a different spot in the next
+        word guessed.
+
+        Args:
+          word (str): The word to be checked.
+
+        Returns:
+          A value that decides if the next word guessed has forbidden letters in different spots
+        """
         for letter, forbidden_indices in self.forbidden_spots.items():
             if letter not in word:
                 return False
@@ -49,6 +107,18 @@ class GuessData:
         return True
 
     def filter_words(self, word: str) -> bool:
+        """Filters out words that can be chosen for the next guess.
+
+        Filters out the next possible words to be chosen for a guess
+        based on the results of matches_correct_spots, respects_forbidden_spots,
+        no_incorrect_letters, and respects_forbidden_word_in_different_spot.
+
+        Args:
+          word (str): The word to be checked.
+
+        Returns:
+          A value that represents if the next word has been filtered.
+        """
         return (
                 self.matches_correct_spots(word)
                 and self.respects_forbidden_spots(word)
@@ -57,6 +127,16 @@ class GuessData:
         )
 
     def gather_information(self, guess: list[LetterInfo]):
+        """Gathers information based on results of guesses.
+
+        Uses information based on the results of previous guesses
+        and uses that data to sort and give values to the lists
+        used for the next guess.
+
+        Args:
+          guess (list[LetterInfo]): The results of previous guesses.
+
+        """
         for idx, letter_info in enumerate(guess):
             if letter_info.in_correct_spot:
                 self.in_correct_spot[idx] = letter_info.letter
