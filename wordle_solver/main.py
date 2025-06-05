@@ -146,7 +146,7 @@ def solve_wordle() -> str:
     guess, word = make_attempt(attempts, session_id, guess_data)
     while not need_to_exit:
       attempts += 1
-      if attempts == max_attempts:
+      if attempts >= max_attempts:
         need_to_exit = True
       if guess_data.is_wordle_found(word):
         need_to_exit = True

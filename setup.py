@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='wordle_solver',
-    version='0.94',
+    version='0.95',
     packages=find_packages(),
     package_data={
         'wordle_solver': ['words.txt', 'startingwords.txt'],
