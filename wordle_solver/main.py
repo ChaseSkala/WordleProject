@@ -27,7 +27,7 @@ def create_session() -> str:
 
   return response.json()['session_id']
 
-def find_new_word(guess_info: GuessData) -> str:
+def find_new_word(guess_info: GuessData, user_guess: str) -> str:
   """A function that finds a new word to be guessed for the wordle.
 
   The function takes data from previous guesses and uses that data
@@ -41,20 +41,34 @@ def find_new_word(guess_info: GuessData) -> str:
   Returns:
     str: The word that was found to be the next best guess.
   """
-  found_new_word = False
-  with importlib.resources.open_text("wordle_solver", "words.txt") as file:
-    words: list[str] = [line.strip() for line in file]
-    while not found_new_word:
-      if guess_info.in_correct_spot == [None, None, None, None, None] and guess_info.in_word_not_spot == [] and guess_info.not_in_word == []:
-        with importlib.resources.open_text("wordle_solver", "startingwords.txt") as file:
-          words: list[str] = [line.strip() for line in file]
+  if user_guess is not None:
+    found_new_word = False
+    with importlib.resources.open_text("wordle_solver", "words.txt") as file:
+      words: list[str] = [line.strip() for line in file]
+      while not found_new_word:
+        if guess_info.in_correct_spot == [None, None, None, None,None] and guess_info.in_word_not_spot == [] and guess_info.not_in_word == []:
+          word = user_guess
+          found_new_word = True
+        else:
+          words = list(filter(lambda w: guess_info.filter_words(w), words))
           word: str = random.choice(words)
-        found_new_word = True
-      else:
-        words = list(filter(lambda w: guess_info.filter_words(w), words))
-        word: str = random.choice(words)
-        found_new_word = True
-    return word
+          found_new_word = True
+      return word
+  else:
+    found_new_word = False
+    with importlib.resources.open_text("wordle_solver", "words.txt") as file:
+      words: list[str] = [line.strip() for line in file]
+      while not found_new_word:
+        if guess_info.in_correct_spot == [None, None, None, None, None] and guess_info.in_word_not_spot == [] and guess_info.not_in_word == []:
+          with importlib.resources.open_text("wordle_solver", "startingwords.txt") as file:
+            words: list[str] = [line.strip() for line in file]
+            word: str = random.choice(words)
+          found_new_word = True
+        else:
+          words = list(filter(lambda w: guess_info.filter_words(w), words))
+          word: str = random.choice(words)
+          found_new_word = True
+      return word
 
 def data(word: str, session_id: str) -> dict:
   """A function that holds the web data for the program.
@@ -78,7 +92,7 @@ def data(word: str, session_id: str) -> dict:
   response = requests.request("POST", url, headers=headers, data=payload)
   return response.json()
 
-def make_guess(session_id: str, guess_info: GuessData) -> tuple[list[LetterInfo], str]:
+def make_guess(session_id: str, guess_info: GuessData, user_guess: str) -> tuple[list[LetterInfo], str]:
   """A function that makes the guesses to the wordle server.
 
   The function takes the next best word and makes a guess
@@ -94,7 +108,10 @@ def make_guess(session_id: str, guess_info: GuessData) -> tuple[list[LetterInfo]
     A list of the data gained from making the guess and
     the word that was used for making the guess.
   """
-  word = find_new_word(guess_info)
+  if user_guess is not None:
+    word = find_new_word(guess_info, user_guess)
+  else:
+    word = find_new_word(guess_info, None)
   response = data(word, session_id)
   print(f"Guessed word: {word}")
   print(response)
@@ -103,7 +120,7 @@ def make_guess(session_id: str, guess_info: GuessData) -> tuple[list[LetterInfo]
     letter_infos.append(LetterInfo(**letter_info))
   return letter_infos, word
 
-def make_attempt(attempts: int, session_id: str, guess_data: GuessData) -> tuple[list, str]:
+def make_attempt(attempts: int, session_id: str, guess_data: GuessData, user_guess: str) -> tuple[list, str]:
   """A function that makes an attempt at solving the wordle.
 
   This function makes a guess at solving the wordle and then
@@ -121,11 +138,14 @@ def make_attempt(attempts: int, session_id: str, guess_data: GuessData) -> tuple
     for the guess.
   """
   print(f"Attempt {attempts}")
-  guess, word = make_guess(session_id, guess_data)
+  if user_guess is not None:
+    guess, word = make_guess(session_id, guess_data, user_guess)
+  else:
+    guess, word = make_guess(session_id, guess_data, None)
   guess_data.gather_information(guess)
   return guess, word
 
-def solve_wordle() -> tuple[str, int]:
+def solve_wordle(user_guess: str) -> tuple[str, int]:
   """A function that solves the wordle.
 
   This function keeps track if the wordle has been found or not
@@ -135,29 +155,58 @@ def solve_wordle() -> tuple[str, int]:
   Returns:
     The answer of what the daily wordle's word is.
   """
-  answer = None
-  finding_wordle = True
-  attempts = 1
-  found_wordle = False
-  need_to_exit = False
-  while finding_wordle:
-    guess_data = GuessData()
-    session_id = create_session()
-    guess, word = make_attempt(attempts, session_id, guess_data)
-    while not need_to_exit:
-      attempts += 1
-      if attempts >= max_attempts:
-        need_to_exit = True
-      if guess_data.is_wordle_found(word):
-        need_to_exit = True
-        found_wordle = True
+  if user_guess is not None:
+    answer = None
+    finding_wordle = True
+    attempts = 1
+    found_wordle = False
+    need_to_exit = False
+    while finding_wordle:
+      guess_data = GuessData()
+      session_id = create_session()
+      guess, word = make_attempt(attempts, session_id, guess_data, user_guess)
+      while not need_to_exit:
+        attempts += 1
+        if attempts >= max_attempts:
+          need_to_exit = True
+        if guess_data.is_wordle_found(word):
+          need_to_exit = True
+          found_wordle = True
+        else:
+          guess, word = make_attempt(attempts, session_id, guess_data, user_guess)
+      if found_wordle:
+        print(f"Today's wordle is {word}")
+        finding_wordle = False
+        answer = word
       else:
-        guess, word = make_attempt(attempts, session_id, guess_data)
-    if found_wordle:
-      print(f"Today's wordle is {word}")
-      finding_wordle = False
-      answer = word
-    else:
-      print("I was unable to find the wordle.")
-      print("Re-trying...")
-  return answer, attempts
+        print("I was unable to find the wordle.")
+        print("Re-trying...")
+    return answer, attempts
+  else:
+    answer = None
+    finding_wordle = True
+    attempts = 1
+    found_wordle = False
+    need_to_exit = False
+    while finding_wordle:
+      guess_data = GuessData()
+      session_id = create_session()
+      guess, word = make_attempt(attempts, session_id, guess_data, None)
+      while not need_to_exit:
+        attempts += 1
+        if attempts >= max_attempts:
+          need_to_exit = True
+        if guess_data.is_wordle_found(word):
+          need_to_exit = True
+          found_wordle = True
+        else:
+          guess, word = make_attempt(attempts, session_id, guess_data, None)
+      if found_wordle:
+        print(f"Today's wordle is {word}")
+        finding_wordle = False
+        answer = word
+      else:
+        print("I was unable to find the wordle.")
+        print("Re-trying...")
+    return answer, attempts
+  return None
