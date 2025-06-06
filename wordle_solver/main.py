@@ -125,7 +125,7 @@ def make_attempt(attempts: int, session_id: str, guess_data: GuessData) -> tuple
   guess_data.gather_information(guess)
   return guess, word
 
-def solve_wordle() -> str:
+def solve_wordle() -> tuple[str, int]:
   """A function that solves the wordle.
 
   This function keeps track if the wordle has been found or not
@@ -160,4 +160,4 @@ def solve_wordle() -> str:
     else:
       print("I was unable to find the wordle.")
       print("Re-trying...")
-  return answer
+  return answer, attempts
