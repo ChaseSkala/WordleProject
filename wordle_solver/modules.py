@@ -8,12 +8,51 @@ class LetterInfo:
         self.in_word = in_word
         self.letter = letter
 
+class LetterState:
+    def __init__(self, letter_info):
+        self.letter = letter_info.letter
+        if letter_info.in_correct_spot:
+            self.status = "green"
+        elif letter_info.in_word:
+            self.status = "yellow"
+        else:
+            self.status = "red"
+
+    def to_dict(self):
+        return {
+            "letter": self.letter,
+            "status": self.status
+        }
+
+class GuessState:
+    def __init__(self, word: str, letter_infos: list):
+        self.word = word
+        self.result = [LetterState(li) for li in letter_infos]
+
+    def to_dict(self):
+        return {
+            "word": self.word,
+            "result": [letter.to_dict() for letter in self.result]
+        }
+
+class GuessHistory:
+    def __init__(self):
+        self.guesses: list[GuessState] = []
+
+    def add_guess(self, word: str, letter_infos: list):
+        self.guesses.append(GuessState(word, letter_infos))
+
+    def to_dict(self):
+        return {
+            "guesses": [guess.to_dict() for guess in self.guesses]
+        }
 class GuessData:
     def __init__(self):
         self.in_correct_spot = [None, None, None, None, None]
         self.in_word_not_spot = []
         self.not_in_word = []
         self.forbidden_spots = {}
+        self.current_guess_state = []
 
     def matches_correct_spots(self, word: str) -> bool:
         """Makes sure that the letters are in the correct spots.

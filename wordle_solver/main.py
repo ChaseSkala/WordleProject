@@ -4,6 +4,7 @@ import random
 
 from .modules import LetterInfo
 from .modules import GuessData
+from .modules import GuessHistory
 import importlib.resources
 
 max_attempts = 6
@@ -140,73 +141,57 @@ def make_attempt(attempts: int, session_id: str, guess_data: GuessData, user_gue
   print(f"Attempt {attempts}")
   if user_guess is not None:
     guess, word = make_guess(session_id, guess_data, user_guess)
+    current_state = guess_data.guess_state(guess)
+    print(current_state)
   else:
     guess, word = make_guess(session_id, guess_data, None)
+    current_state = guess_data.guess_state(guess)
+    print(current_state)
   guess_data.gather_information(guess)
   return guess, word
 
-def solve_wordle(user_guess: str) -> tuple[str, int]:
-  """A function that solves the wordle.
 
-  This function keeps track if the wordle has been found or not
-  and makes attempts using previous guesses and finds the daily
-  wordle.
+def solve_wordle(user_guess: str) -> tuple[str, int, GuessHistory]:
+  """A function that solves the Wordle.
+
+  This function keeps track if the Wordle has been found or not
+  and makes attempts using previous guesses and finds the daily Wordle.
 
   Returns:
-    The answer of what the daily wordle's word is.
+      The answer of what the daily Wordle's word is.
   """
-  if user_guess is not None:
-    answer = None
-    finding_wordle = True
+  answer = None
+  finding_wordle = True
+  history = GuessHistory()
+
+  while finding_wordle:
+    guess_data = GuessData()
+    session_id = create_session()
     attempts = 1
     found_wordle = False
     need_to_exit = False
-    while finding_wordle:
-      guess_data = GuessData()
-      session_id = create_session()
-      guess, word = make_attempt(attempts, session_id, guess_data, user_guess)
-      while not need_to_exit:
-        attempts += 1
-        if attempts >= max_attempts:
-          need_to_exit = True
-        if guess_data.is_wordle_found(word):
-          need_to_exit = True
-          found_wordle = True
-        else:
-          guess, word = make_attempt(attempts, session_id, guess_data, user_guess)
-      if found_wordle:
-        print(f"Today's wordle is {word}")
-        finding_wordle = False
-        answer = word
+
+    guess, word = make_attempt(attempts, session_id, guess_data, user_guess)
+    history.add_guess(word, guess)
+
+    while not need_to_exit:
+      attempts += 1
+
+      if guess_data.is_wordle_found(word):
+        found_wordle = True
+        need_to_exit = True
+      elif attempts >= max_attempts:
+        need_to_exit = True
       else:
-        print("I was unable to find the wordle.")
-        print("Re-trying...")
-    return answer, attempts
-  else:
-    answer = None
-    finding_wordle = True
-    attempts = 1
-    found_wordle = False
-    need_to_exit = False
-    while finding_wordle:
-      guess_data = GuessData()
-      session_id = create_session()
-      guess, word = make_attempt(attempts, session_id, guess_data, None)
-      while not need_to_exit:
-        attempts += 1
-        if attempts >= max_attempts:
-          need_to_exit = True
-        if guess_data.is_wordle_found(word):
-          need_to_exit = True
-          found_wordle = True
-        else:
-          guess, word = make_attempt(attempts, session_id, guess_data, None)
-      if found_wordle:
-        print(f"Today's wordle is {word}")
-        finding_wordle = False
-        answer = word
-      else:
-        print("I was unable to find the wordle.")
-        print("Re-trying...")
-    return answer, attempts
-  return None
+        guess, word = make_attempt(attempts, session_id, guess_data, user_guess)
+        history.add_guess(word, guess)
+
+    if found_wordle:
+      print(f"Today's wordle is {word}")
+      finding_wordle = False
+      answer = word
+    else:
+      print("I was unable to find the wordle.")
+      print("Re-trying...")
+
+  return answer, attempts, history
