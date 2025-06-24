@@ -5,6 +5,7 @@ import random
 from .modules import LetterInfo
 from .modules import GuessData
 from .modules import GuessHistory
+from .modules import GuessState
 import importlib.resources
 
 max_attempts = 6
@@ -18,7 +19,7 @@ def create_session() -> str:
   Returns:
     str: The session id for the user.
   """
-  url = "http://127.0.0.1:8000/session"
+  url = "https://i4ngprmxwaqhwx5jj45zqbfbq40qakjr.lambda-url.us-east-2.on.aws/session"
 
   payload = ""
   headers = {}
@@ -83,7 +84,7 @@ def data(word: str, session_id: str) -> dict:
   Returns:
     dict: The payload and headers.
   """
-  url = f"http://127.0.0.1:8000/session/{session_id}/guess"
+  url = f"https://i4ngprmxwaqhwx5jj45zqbfbq40qakjr.lambda-url.us-east-2.on.aws/session/{session_id}/guess"
   payload = json.dumps({
     "guess": f"{word}"
   })
@@ -141,11 +142,11 @@ def make_attempt(attempts: int, session_id: str, guess_data: GuessData, user_gue
   print(f"Attempt {attempts}")
   if user_guess is not None:
     guess, word = make_guess(session_id, guess_data, user_guess)
-    current_state = guess_data.guess_state(guess)
+    current_state = GuessState(word, guess)
     print(current_state)
   else:
     guess, word = make_guess(session_id, guess_data, None)
-    current_state = guess_data.guess_state(guess)
+    current_state = GuessState(word, guess)
     print(current_state)
   guess_data.gather_information(guess)
   return guess, word

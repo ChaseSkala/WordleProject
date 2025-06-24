@@ -46,6 +46,7 @@ class GuessHistory:
         return {
             "guesses": [guess.to_dict() for guess in self.guesses]
         }
+
 class GuessData:
     def __init__(self):
         self.in_correct_spot = [None, None, None, None, None]
