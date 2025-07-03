@@ -183,6 +183,7 @@ def solve_wordle(user_guess: str) -> tuple[str, int, GuessHistory]:
         need_to_exit = True
       elif attempts >= max_attempts:
         need_to_exit = True
+        history = GuessHistory()
       else:
         guess, word = make_attempt(attempts, session_id, guess_data, user_guess)
         history.add_guess(word, guess)
